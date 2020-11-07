@@ -9,7 +9,6 @@ def replace_tags_and_brackets(content):
                                 .replace('speaker audio=','')
 
     filtered_content = re.sub(r'\".*\"', '', filtered_content)
-    print(filtered_content)
     return filtered_content
 
 def get_children_buttons(node):
@@ -17,6 +16,9 @@ def get_children_buttons(node):
     for i in elements[node]['outputs']:
         buttons.append(replace_tags_and_brackets(connections[i]['label']))
     return buttons
+
+def get_buttons_for_exception(children_connections):
+    return list(children_connections.keys())
 
 def search_for_audio(content):
     try:
@@ -34,7 +36,6 @@ def get_children_connections(node):
                                              jumpers[connections[i]['targetid']]['elementId']})
         except KeyError:
             children_connections.update({replace_tags_and_brackets(connections[i]['label']): connections[i]['targetid']})
-    print(children_connections)
     return children_connections
 
 with open('project_settings.json', 'r') as p:
@@ -56,26 +57,23 @@ def run_script():
 
     children_connections = get_children_connections(starting_element)
     following_element = request.command
-    try:
-        yield say(replace_tags_and_brackets(elements[children_connections[following_element]]['content']),
+    yield say(replace_tags_and_brackets(elements[children_connections[following_element]]['content']),
               suggest(*get_children_buttons(children_connections[following_element])))
-    except KeyError:
-        yield say('Я вас не поняла. Выберите один из вариантов:',
-                  suggest(*get_children_buttons(children_connections[following_element])))
-        print(following_element)
-        print(children_connections)
+
+    children_connections = get_children_connections(children_connections[following_element])
 
     while children_connections:
-        children_connections = get_children_connections(children_connections[following_element])
-        following_element = request.command
-        if following_element in children_connections:
+        if request.command in children_connections:
+            following_element = request.command
             yield say(replace_tags_and_brackets(elements[children_connections[following_element]]['content']),
                   suggest(*get_children_buttons(children_connections[following_element])),
                   tts=search_for_audio(elements[children_connections[following_element]]['content']))
+            children_connections = get_children_connections(children_connections[following_element])
         else:
-            yield say('Я вас не поняла. Выберите один из вариантов')
             print(following_element)
             print(children_connections)
+            yield say('Я вас не поняла. Выберите один из вариантов',
+                      suggest(*get_buttons_for_exception(children_connections)))
 
     yield say('Спасибо за игру!',
               end_session=True)
