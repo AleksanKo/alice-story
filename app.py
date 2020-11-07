@@ -28,7 +28,6 @@ def search_for_audio(content):
 
 def get_children_connections(node):
     children_connections = {}
-    #print(elements[node]['outputs'])
     for i in elements[node]['outputs']:
         try:
             children_connections.update({replace_tags_and_brackets(connections[i]['label']):
@@ -50,31 +49,33 @@ beginning = replace_tags_and_brackets(elements[starting_element]['content'])
 #print(elements[connections[elements[starting_element]['outputs'][0]]['targetid']]['title'])
 #print(beginning['outputs'])
 
-
 @skill.script
 def run_script():
     yield say(beginning,
               suggest(*get_children_buttons(starting_element)))
 
-    following_element = request.command
-
     children_connections = get_children_connections(starting_element)
-    #print(children_connections)
-    #print(elements[children_connections[following_element]])
-
-    yield say(replace_tags_and_brackets(elements[children_connections[following_element]]['content']),
+    following_element = request.command
+    try:
+        yield say(replace_tags_and_brackets(elements[children_connections[following_element]]['content']),
               suggest(*get_children_buttons(children_connections[following_element])))
+    except KeyError:
+        yield say('Я вас не поняла. Выберите один из вариантов:',
+                  suggest(*get_children_buttons(children_connections[following_element])))
+        print(following_element)
+        print(children_connections)
 
     while children_connections:
         children_connections = get_children_connections(children_connections[following_element])
         following_element = request.command
-        #print(elements[children_connections[following_element]]['content'])
-        yield say(replace_tags_and_brackets(elements[children_connections[following_element]]['content']),
+        if following_element in children_connections:
+            yield say(replace_tags_and_brackets(elements[children_connections[following_element]]['content']),
                   suggest(*get_children_buttons(children_connections[following_element])),
                   tts=search_for_audio(elements[children_connections[following_element]]['content']))
+        else:
+            yield say('Я вас не поняла. Выберите один из вариантов')
+            print(following_element)
+            print(children_connections)
 
-    #while not request.matches(r'\d+'):
-        #yield say('Я вас не поняла. Скажите число')
-
-    yield say('Рада',
+    yield say('Спасибо за игру!',
               end_session=True)
