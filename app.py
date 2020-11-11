@@ -20,6 +20,9 @@ def get_children_buttons(node):
 def get_buttons_for_exception(children_connections):
     return list(children_connections.keys())
 
+def get_image(node):
+    return assets[node['assets']['cover']['id']]['name']
+
 def search_for_audio(content):
     try:
         audio_link = re.search(r'\"(.*)\"', content).group(1)
@@ -45,10 +48,9 @@ starting_element = all_data['startingElement']
 connections = all_data['connections']
 elements = all_data['elements']
 jumpers = all_data['jumpers']
+assets = all_data['assets']
+
 beginning = replace_tags_and_brackets(elements[starting_element]['content'])
-#print(elements[starting_element]['content'])
-#print(elements[connections[elements[starting_element]['outputs'][0]]['targetid']]['title'])
-#print(beginning['outputs'])
 
 @skill.script
 def run_script():
@@ -56,11 +58,6 @@ def run_script():
               suggest(*get_children_buttons(starting_element)))
 
     children_connections = get_children_connections(starting_element)
-    following_element = request.command
-    yield say(replace_tags_and_brackets(elements[children_connections[following_element]]['content']),
-              suggest(*get_children_buttons(children_connections[following_element])))
-
-    children_connections = get_children_connections(children_connections[following_element])
 
     while children_connections:
         if request.command in children_connections:
