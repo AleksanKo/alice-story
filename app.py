@@ -67,8 +67,6 @@ def run_script():
                   tts=search_for_audio(elements[children_connections[following_element]]['content']))
             children_connections = get_children_connections(children_connections[following_element])
         else:
-            print(following_element)
-            print(children_connections)
             yield say('Я вас не поняла. Выберите один из вариантов',
                       suggest(*get_buttons_for_exception(children_connections)))
 
