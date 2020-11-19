@@ -6,9 +6,11 @@ skill = Skill(__name__)
 def replace_tags_and_brackets(content):
     filtered_content = content.replace('<p>', '').replace('</p>', '')\
                                 .replace('&lt;', '').replace('&gt;', '').replace('<br>', '')\
-                                .replace('speaker audio=','')
+                                .replace('speaker audio=', '')\
+                                .replace('<a href=', '').replace('</a>', '').replace('>', '')
 
-    filtered_content = re.sub(r'\".*\"', '', filtered_content)
+    filtered_content = re.sub(r'\".*.\"', '', filtered_content)
+    filtered_content = re.sub(r'https.*\.jpeg', '', filtered_content)
     return filtered_content
 
 def get_children_buttons(node):
@@ -20,12 +22,23 @@ def get_children_buttons(node):
 def get_buttons_for_exception(children_connections):
     return list(children_connections.keys())
 
-def get_image(node):
+def get_image_from_json(node):
     return assets[node['assets']['cover']['id']]['name']
+
+def get_image_from_text(content):
+    try:
+        image_link = re.search(r'title="(https.*\.jpeg)"', content).group(1)
+        print(image_link)
+    except AttributeError:
+        image_link = ''
+    return image_link
+
+def get_images_dict(json_images, text_images):
+    return dict(zip(json_images, text_images))
 
 def search_for_audio(content):
     try:
-        audio_link = re.search(r'\"(.*)\"', content).group(1)
+        audio_link = re.search(r'\"(.*.opus)\"', content).group(1)
         print(audio_link)
     except AttributeError:
         audio_link = ''
@@ -62,13 +75,15 @@ def run_script():
     while children_connections:
         if request.command in children_connections:
             following_element = request.command
+            print(get_image_from_text(elements[children_connections[following_element]]['content']))
+            print(get_image_from_json(elements[children_connections[following_element]]))
             yield say(replace_tags_and_brackets(elements[children_connections[following_element]]['content']),
                   suggest(*get_children_buttons(children_connections[following_element])),
                   tts=search_for_audio(elements[children_connections[following_element]]['content']))
             children_connections = get_children_connections(children_connections[following_element])
+        elif request.command == 'хватит':
+            yield say('Спасибо за игру!',
+              end_session=True)
         else:
             yield say('Я вас не поняла. Выберите один из вариантов',
                       suggest(*get_buttons_for_exception(children_connections)))
-
-    yield say('Спасибо за игру!',
-              end_session=True)
